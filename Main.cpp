@@ -38,19 +38,14 @@ namespace pub
 			MissionMessageType_Type3, // mission success
 		};
 	}
-}
-
-class iVector
-{
-public:
-	int x, y, z;
 };
+
 struct RaceTrack
 {
 	int iTrackId;
 	string sTrackNameFriendly;
-	iVector vStartPos;
-	iVector vFinishPos;
+	Vector vStartPos;
+	Vector vFinishPos;
 	string sSystem;
 };
 struct Racer
@@ -63,16 +58,9 @@ struct Racer
 	bool bRacing;
 	bool bWaiting;
 };
-struct ZoneBuffer
-{
-	int pos;
-	int neg;
-	int zpos;
-	int zneg;
-};
 
 vector<string> vTrackList;
-ZoneBuffer buffer;
+float buffer;
 static map<int, RaceTrack> mapRegisteredRaceTracks;
 static map<int, Racer> mapRegisteredRacers;
 
@@ -116,8 +104,9 @@ bool bPluginEnabled = true;
 void LoadSettings()
 {
 	returncode = DEFAULT_RETURNCODE;
-
-	string File_FLHook = "..\\exe\\flhook_plugins\\raceme.cfg";
+	char szCurDir[MAX_PATH];
+	GetCurrentDirectory(sizeof(szCurDir), szCurDir);
+	string File_FLHook = string(szCurDir) + "\\flhook_plugins\\raceme.cfg";
 	int iLoaded = 0;
 
 	INI_Reader ini;
@@ -135,10 +124,7 @@ void LoadSettings()
 					}
 					if (ini.is_value("buffer"))
 					{
-						buffer.pos = ini.get_value_int(0);
-						buffer.neg = ini.get_value_int(1);
-						buffer.zpos = ini.get_value_int(2);
-						buffer.zneg = ini.get_value_int(3);
+						buffer = ini.get_value_float(0);
 					}
 				}
 			}
@@ -208,11 +194,11 @@ bool UserCmd_StartRace(uint iClientID, const wstring &wscCmd, const wstring &wsc
 	//pub::Player::GetSystem(iClientID, PlayerCurrentiSystem);
 	//wstring wsRaceSystem = HkGetSystemNickByID(mapRegisteredRaceTracks[iRaceTrackId].sSystem.c_str());//CreateID(mapRegisteredRaceTracks[iRaceTrackId].sSystem.c_str());
 
-	ConPrint(L"track: " + wscParam + L" RaceSystem:" + stows(mapRegisteredRaceTracks[iRaceTrackId].sSystem) + L" player sys:" + stows(PlayerCurrentsSystem) + L" trackid:" + stows(itos(mapRegisteredRaceTracks[iRaceTrackId].iTrackId)));//debug
-	//check if valid trackid
-	if (iRaceTrackId > 0 && mapRegisteredRaceTracks[iRaceTrackId].iTrackId == iRaceTrackId && PlayerCurrentsSystem == mapRegisteredRaceTracks[iRaceTrackId].sSystem)
-	{//check if user entered an id, that it is loaded into map, and the user in in the correct system
+	//debug: ConPrint(L"track: " + wscParam + L" RaceSystem:" + stows(mapRegisteredRaceTracks[iRaceTrackId].sSystem) + L" player sys:" + stows(PlayerCurrentsSystem) + L" trackid:" + stows(itos(mapRegisteredRaceTracks[iRaceTrackId].iTrackId)));//debug
 
+	//check if user entered an id, that it is loaded into map, and the user in in the correct system
+	if (iRaceTrackId > 0 && mapRegisteredRaceTracks[iRaceTrackId].iTrackId == iRaceTrackId && PlayerCurrentsSystem == mapRegisteredRaceTracks[iRaceTrackId].sSystem)
+	{
 		mapRegisteredRacers[iClientID].iRacerId = iClientID;
 		mapRegisteredRacers[iClientID].bWaiting = true;
 		mapRegisteredRacers[iClientID].iTrackId = iRaceTrackId;
@@ -278,7 +264,7 @@ bool UserCmd_dev(uint iClientID, const wstring &wscCmd, const wstring &wscParam,
 
 void playerNotification(int iClientID, wstring wszText)
 {
-	HkChangeIDSString(iClientID, 526999, wszText);
+	HkChangeIDSString(iClientID, 526999, wszText);//526999 is the mission objective text that pops up with 'n'
 
 	FmtStr caption(0, 0);
 	caption.begin_mad_lib(526999);
@@ -291,35 +277,34 @@ void playerNotification(int iClientID, wstring wszText)
 void ClearClientInfo(uint iClientID)
 {
 	returncode = DEFAULT_RETURNCODE;
-	mapRegisteredRacers[iClientID].bRacing = false;
-	mapRegisteredRacers[iClientID].bWaiting = false;
-	mapRegisteredRacers[iClientID].iTimeStart = 0;
-	mapRegisteredRacers[iClientID].iTrackId = 0;
+
+	mapRegisteredRacers.erase(iClientID);
 }
 
 void __stdcall SPObjUpdate(struct SSPObjUpdateInfo const &ui, unsigned int iClientID)
 {
 	//save the x,y,z in this update
-	int x = ui.vPos.x;//shippy
-	int y = ui.vPos.y;
-	int z = ui.vPos.z;
+	Vector shippyPos;
+	shippyPos = ui.vPos;
 
 	if (mapRegisteredRacers[iClientID].bWaiting)//we're in a waiting state before start of race
 	{
-		returncode = SKIPPLUGINS_NOFUNCTIONCALL; // ours, don't let others touch it
-
-		iVector StartPos;
-		StartPos.x = mapRegisteredRaceTracks[mapRegisteredRacers[iClientID].iTrackId].vStartPos.x;//target pos
-		StartPos.y = mapRegisteredRaceTracks[mapRegisteredRacers[iClientID].iTrackId].vStartPos.y;//start position of track that user is registerd for
-		StartPos.z = mapRegisteredRaceTracks[mapRegisteredRacers[iClientID].iTrackId].vStartPos.z;
-
+		Vector diff;
+		diff.x = shippyPos.x - mapRegisteredRaceTracks[mapRegisteredRacers[iClientID].iTrackId].vStartPos.x;//target pos
+		diff.y = shippyPos.y - mapRegisteredRaceTracks[mapRegisteredRacers[iClientID].iTrackId].vStartPos.y;//start position of track that user is registerd for
+		diff.z = shippyPos.z - mapRegisteredRaceTracks[mapRegisteredRacers[iClientID].iTrackId].vStartPos.z;
+		float d = pow(pow(diff.x, 2.0f) + pow(diff.y, 2.0f) + pow(diff.z, 2.0f), 0.5f);//calulate 3d distance
 		//check if the player has started moving - before beginning race
-		if (x - StartPos.x < buffer.pos && y - StartPos.y < buffer.pos && z - StartPos.z < buffer.zpos && x - StartPos.x > buffer.neg && y - StartPos.y > buffer.neg && z - StartPos.z > buffer.zneg)
+		if (d < buffer)
 		{
-			PrintUserCmdText(iClientID, L"RACEME: movement event detected: ");
-			PrintUserCmdText(iClientID, stows(itos(x - StartPos.x)));
-			PrintUserCmdText(iClientID, stows(itos(y - StartPos.y)));
-			PrintUserCmdText(iClientID, stows(itos(z - StartPos.z)));
+			if (set_iPluginDebug)
+			{
+				PrintUserCmdText(iClientID, L"RACEME: movement event detected: ");
+				PrintUserCmdText(iClientID, stows(ftos(diff.x)));
+				PrintUserCmdText(iClientID, stows(ftos(diff.y)));
+				PrintUserCmdText(iClientID, stows(ftos(diff.z)));
+				PrintUserCmdText(iClientID, stows(ftos(d)));
+			}
 			mapRegisteredRacers[iClientID].bRacing = true;//start race
 			mapRegisteredRacers[iClientID].bWaiting = false;//not waiting
 
@@ -341,25 +326,28 @@ void __stdcall SPObjUpdate(struct SSPObjUpdateInfo const &ui, unsigned int iClie
 	}
 	if (mapRegisteredRacers[iClientID].bRacing)//during race
 	{
-		returncode = SKIPPLUGINS_NOFUNCTIONCALL; // ours, don't let others touch it
-
 		if ((int)time(0) - mapRegisteredRacers[iClientID].iTimeStart < 2)
 		{
 			//skip - grace period in s if start = finish
 			return;
 		}
 		//finish race
-		iVector FinishPos;
-		FinishPos.x = mapRegisteredRaceTracks[mapRegisteredRacers[iClientID].iTrackId].vFinishPos.x;//target pos
-		FinishPos.y = mapRegisteredRaceTracks[mapRegisteredRacers[iClientID].iTrackId].vFinishPos.y;//finish position of track that user is registered for
-		FinishPos.z = mapRegisteredRaceTracks[mapRegisteredRacers[iClientID].iTrackId].vFinishPos.z;
+		Vector diff;
+		diff.x = shippyPos.x - mapRegisteredRaceTracks[mapRegisteredRacers[iClientID].iTrackId].vFinishPos.x;//target pos
+		diff.y = shippyPos.y - mapRegisteredRaceTracks[mapRegisteredRacers[iClientID].iTrackId].vFinishPos.y;//finish position of track that user is registered for
+		diff.z = shippyPos.z - mapRegisteredRaceTracks[mapRegisteredRacers[iClientID].iTrackId].vFinishPos.z;
+		float d = pow(pow(diff.x,2.0f)+ pow(diff.y, 2.0f)+ pow(diff.z, 2.0f),0.5f);//calculate 3d distance
 		//is the user in the finish buffer zone?
-		if (x - FinishPos.x < buffer.pos && y - FinishPos.y < buffer.pos && z - FinishPos.z < buffer.zpos && x - FinishPos.x > buffer.neg && y - FinishPos.y > buffer.neg && z - FinishPos.z > buffer.zneg)
+		if (d < buffer)
 		{
-			PrintUserCmdText(iClientID, L"RACEME: movement event detected: ");
-			PrintUserCmdText(iClientID, stows(itos(x - FinishPos.x)));
-			PrintUserCmdText(iClientID, stows(itos(y - FinishPos.y)));
-			PrintUserCmdText(iClientID, stows(itos(z - FinishPos.z)));
+			if (set_iPluginDebug)
+			{
+				PrintUserCmdText(iClientID, L"RACEME: movement event detected: ");
+				PrintUserCmdText(iClientID, stows(ftos(diff.x)));
+				PrintUserCmdText(iClientID, stows(ftos(diff.y)));
+				PrintUserCmdText(iClientID, stows(ftos(diff.z)));
+				PrintUserCmdText(iClientID, stows(ftos(d)));
+			}
 			mapRegisteredRacers[iClientID].bRacing = false;//race finished
 			int finTime = (int)time(0) - mapRegisteredRacers[iClientID].iTimeStart;//save timer
 			playerNotification(iClientID, L"Final Time: " + stows(itos(finTime)) + L"'s");
