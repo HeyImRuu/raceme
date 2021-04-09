@@ -26,20 +26,6 @@
 #include <boost/lexical_cast.hpp>
 #include "../../Public/hookext_plugin/hookext_exports.h"
 
-namespace pub
-{
-	namespace Player
-	{
-		enum MissionMessageType
-		{
-			MissionMessageType_Failure, // mission failure
-			MissionMessageType_Type1, // objective
-			MissionMessageType_Type2, // objective
-			MissionMessageType_Type3, // mission success
-		};
-	}
-};
-
 struct RaceTrack
 {
 	int iTrackId;
@@ -219,7 +205,6 @@ bool UserCmd_StartRace(uint iClientID, const wstring &wscCmd, const wstring &wsc
 		PrintUserCmdText(iClientID, L"err.");
 	}
 
-	
 	return true;
 }
 
