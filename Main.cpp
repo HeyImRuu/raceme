@@ -244,8 +244,18 @@ bool UserCmd_ShowTracks(uint iClientID, const wstring &wscCmd, const wstring &ws
 		PrintUserCmdText(iClientID, L"RaceMe is disabled.");
 		return true;
 	}
-	//TODO: print list of tracks
-
+	
+	for (uint i = 0; i < vTrackList.size(); i++)
+	{
+		PrintUserCmdText(iClientID, stows(itos(i+1)) + L": " + stows(vTrackList[i]));
+	}
+	/*
+	for (vector<string>::iterator it = vTrackList.begin(); it != vTrackList.end(); ++it)
+	{
+		
+		PrintUserCmdText(iClientID, stows(*it));
+	}
+	*/
 	PrintUserCmdText(iClientID, L"OK");
 	return true;
 }
