@@ -1,6 +1,17 @@
 # raceme
-<<<<<<< HEAD
 racing plugin for DiscoveryGC's FLHook
 =======
-racing plugin for DiscoveryGC's FLHook
->>>>>>> ad48655c57778dd4b810c20c690a6e25f9a8329c
+Race against the clock on a specified track!
+# commands
+> /startrace &lt;id&gt;
+> /showtracks
+# config
+* [config]
+** buffer - a buffer zone around the start and finish positions: pos,neg,zpos,zneg
+* [data]
+** tracklist - each entry is a valid track name
+* [trackname] - header of a trackname from tracklist
+** track - the track info: id,name,startx,starty,startz,finishx,finishy,finishz,system nick (eg. Br_05)
+# TODO:
+* allow users to create a race instance, allow others to join said instance.
+* more comments

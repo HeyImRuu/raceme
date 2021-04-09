@@ -1,7 +1,7 @@
-// Template for FLHookPlugin
-// February 2016 by BestDiscoveryHookDevs2016
+// RaceMe for Discovery FLHook
+// April 2021 by HeyImRuu
 //
-// This is a template with the bare minimum to have a functional plugin.
+// speed racer.
 //
 // This is free software; you can redistribute it and/or modify it as
 // you wish without restriction. If you do then I would appreciate
