@@ -7,11 +7,11 @@ Race against the clock on a specified track!
 > /showtracks
 # config
 * [config]
-** buffer - a buffer zone around the start and finish positions: pos,neg,zpos,zneg
+..* buffer - a buffer zone around the start and finish positions: pos,neg,zpos,zneg
 * [data]
-** tracklist - each entry is a valid track name
+..* tracklist - each entry is a valid track name
 * [trackname] - header of a trackname from tracklist
-** track - the track info: id,name,startx,starty,startz,finishx,finishy,finishz,system nick (eg. Br_05)
+..* track - the track info: id,name,startx,starty,startz,finishx,finishy,finishz,system nick (eg. Br_05)
 # TODO:
 * allow users to create a race instance, allow others to join said instance.
 * more comments
