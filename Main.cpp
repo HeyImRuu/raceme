@@ -276,14 +276,6 @@ void __stdcall SPObjUpdate(struct SSPObjUpdateInfo const &ui, unsigned int iClie
 		//check if the player has started moving - before beginning race
 		if (d < buffer)
 		{
-			if (set_iPluginDebug)
-			{
-				PrintUserCmdText(iClientID, L"RACEME: movement event detected: ");
-				PrintUserCmdText(iClientID, stows(ftos(diff.x)));
-				PrintUserCmdText(iClientID, stows(ftos(diff.y)));
-				PrintUserCmdText(iClientID, stows(ftos(diff.z)));
-				PrintUserCmdText(iClientID, stows(ftos(d)));
-			}
 			mapRegisteredRacers[iClientID].bRacing = true;//start race
 			mapRegisteredRacers[iClientID].bWaiting = false;//not waiting
 
@@ -320,20 +312,11 @@ void __stdcall SPObjUpdate(struct SSPObjUpdateInfo const &ui, unsigned int iClie
 		//is the user in the finish buffer zone?
 		if (d < buffer)
 		{
-			if (set_iPluginDebug)
-			{
-				PrintUserCmdText(iClientID, L"RACEME: movement event detected: ");
-				PrintUserCmdText(iClientID, stows(ftos(diff.x)));
-				PrintUserCmdText(iClientID, stows(ftos(diff.y)));
-				PrintUserCmdText(iClientID, stows(ftos(diff.z)));
-				PrintUserCmdText(iClientID, stows(ftos(d)));
-			}
 			mapRegisteredRacers[iClientID].bRacing = false;//race finished
-			time_duration finTime = ptimeNow - mapRegisteredRacers[iClientID].iTimeStart;//save timer
-			wstring wsFinMsg = L" Has completed " + stows(mapRegisteredRaceTracks[mapRegisteredRacers[iClientID].iTrackId].sTrackNameFriendly) + L" in " + to_simple_wstring(finTime);
-			PrintUserCmdText(iClientID, wsFinMsg);//tell the user
-			PrintLocalUserCmdText(iClientID, wsFinMsg, 15000.f);//tell everyone within 15k
-			playerNotification(iClientID, L"Final Time: " + to_simple_wstring(finTime));
+			wstring finTime = to_simple_wstring(ptimeNow - mapRegisteredRacers[iClientID].iTimeStart);//save timer
+			wstring finMsg = ToLower((wchar_t*)Players.GetActiveCharacterName(iClientID))+L" Has completed "+stows(mapRegisteredRaceTracks[mapRegisteredRacers[iClientID].iTrackId].sTrackNameFriendly)+L" in "+finTime;
+			PrintLocalUserCmdText(iClientID, finMsg, 15000.0f);
+			playerNotification(iClientID, L"Final Time: " + finTime);
 			pub::Audio::CancelMusic(iClientID);
 		}
 	}
