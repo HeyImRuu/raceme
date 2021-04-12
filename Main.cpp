@@ -24,8 +24,9 @@
 #include <PluginUtilities.h>
 #include "Main.h"
 #include <boost/lexical_cast.hpp>
+#include <boost/date_time/posix_time/posix_time.hpp>
 #include "../../Public/hookext_plugin/hookext_exports.h"
-
+using namespace boost::posix_time;
 struct RaceTrack
 {
 	int iTrackId;
@@ -39,8 +40,7 @@ struct Racer
 	string sRacerNick;
 	int iRacerId;
 	int iTrackId;
-	int iTimeStart;
-	int iTimeFinish;
+	ptime iTimeStart;
 	bool bRacing;
 	bool bWaiting;
 };
@@ -189,17 +189,7 @@ bool UserCmd_StartRace(uint iClientID, const wstring &wscCmd, const wstring &wsc
 		mapRegisteredRacers[iClientID].bWaiting = true;
 		mapRegisteredRacers[iClientID].iTrackId = iRaceTrackId;
 		PrintUserCmdText(iClientID, L"OK " + wscParam);
-		//TODO: allow others to join a race, with ready state
-		//play some music
-		uint MusictoID = CreateID("music_race_start");
-		pub::Audio::Tryptich music;
-		music.iDunno = 0;
-		music.iDunno2 = 0;//neither do I, Cannon
-		music.iDunno3 = 0;
-		music.iMusicID = MusictoID;
-		pub::Audio::SetMusic(iClientID, music);
 		return true;
-
 	}
 	else {
 		PrintUserCmdText(iClientID, L"err.");
@@ -230,7 +220,6 @@ bool UserCmd_ShowTracks(uint iClientID, const wstring &wscCmd, const wstring &ws
 	PrintUserCmdText(iClientID, L"OK");
 	return true;
 }
-
 
 bool UserCmd_dev(uint iClientID, const wstring &wscCmd, const wstring &wscParam, const wchar_t *usage)
 {
@@ -266,12 +255,17 @@ void ClearClientInfo(uint iClientID)
 	mapRegisteredRacers.erase(iClientID);
 }
 
+// you really gotta pull a sharp turn thru the gates to make sure you trigger this update,
+// min size for the buffer really has to be 50, an arrow pulling a full turn in cruise only updates every 40m or so.
+// unless you're activley controlling the movement of your ship these updates can slow down to well over 150m,
+// which means you'll miss the gate by a lot. A 50m buffer is roughly the correct size to use for the race gates,
+// can use bigger but trying to avoid allowing skipping a gate.
 void __stdcall SPObjUpdate(struct SSPObjUpdateInfo const &ui, unsigned int iClientID)
 {
 	//save the x,y,z in this update
 	Vector shippyPos;
 	shippyPos = ui.vPos;
-
+	
 	if (mapRegisteredRacers[iClientID].bWaiting)//we're in a waiting state before start of race
 	{
 		Vector diff;
@@ -295,7 +289,7 @@ void __stdcall SPObjUpdate(struct SSPObjUpdateInfo const &ui, unsigned int iClie
 
 			PrintUserCmdText(iClientID, L"Timer started.");
 			//timer start
-			mapRegisteredRacers[iClientID].iTimeStart = (int)time(0);
+			mapRegisteredRacers[iClientID].iTimeStart = microsec_clock::universal_time();
 
 			//play some music
 			uint MusictoID = CreateID("music_race_loop");
@@ -309,9 +303,10 @@ void __stdcall SPObjUpdate(struct SSPObjUpdateInfo const &ui, unsigned int iClie
 
 		}
 	}
+	ptime ptimeNow = microsec_clock::universal_time();
 	if (mapRegisteredRacers[iClientID].bRacing)//during race
 	{
-		if ((int)time(0) - mapRegisteredRacers[iClientID].iTimeStart < 2)
+		if (ptimeNow - mapRegisteredRacers[iClientID].iTimeStart < boost::posix_time::seconds(2))
 		{
 			//skip - grace period in s if start = finish
 			return;
@@ -334,16 +329,16 @@ void __stdcall SPObjUpdate(struct SSPObjUpdateInfo const &ui, unsigned int iClie
 				PrintUserCmdText(iClientID, stows(ftos(d)));
 			}
 			mapRegisteredRacers[iClientID].bRacing = false;//race finished
-			int finTime = (int)time(0) - mapRegisteredRacers[iClientID].iTimeStart;//save timer
-			playerNotification(iClientID, L"Final Time: " + stows(itos(finTime)) + L"'s");
+			time_duration finTime = ptimeNow - mapRegisteredRacers[iClientID].iTimeStart;//save timer
+			wstring wsFinMsg = L" Has completed " + stows(mapRegisteredRaceTracks[mapRegisteredRacers[iClientID].iTrackId].sTrackNameFriendly) + L" in " + to_simple_wstring(finTime);
+			PrintUserCmdText(iClientID, wsFinMsg);//tell the user
+			PrintLocalUserCmdText(iClientID, wsFinMsg, 15000.f);//tell everyone within 15k
+			playerNotification(iClientID, L"Final Time: " + to_simple_wstring(finTime));
 			pub::Audio::CancelMusic(iClientID);
-
-			PrintUserCmdText(iClientID, L" Has completed " + stows(mapRegisteredRaceTracks[mapRegisteredRacers[iClientID].iTrackId].sTrackNameFriendly) + L" in " + stows(itos(finTime)) + L"'s");//tell the user
-			PrintLocalUserCmdText(iClientID, L" Has completed " + stows(mapRegisteredRaceTracks[mapRegisteredRacers[iClientID].iTrackId].sTrackNameFriendly) + L" in " + stows(itos(finTime)) + L"'s", 15000);//tell everyone within 15k
-			//output to file?
 		}
 	}
 	//nevermind; not ours
+	return;
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
