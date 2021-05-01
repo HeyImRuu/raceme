@@ -7,7 +7,7 @@ Race against the clock on a specified track!
 > /showtracks
 # config
 * [config]
-	* buffer - a buffer zone around the start and finish positions: pos,neg,zpos,zneg
+	* buffer - a buffer zone sphere around the start and finish positions: radius
 * [data]
 	* tracklist - each entry is a valid track name
 * [trackname] - header of a trackname from tracklist

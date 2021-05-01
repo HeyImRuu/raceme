@@ -262,17 +262,9 @@ void ClearClientInfo(uint iClientID)
 // can use bigger but trying to avoid allowing skipping a gate.
 void __stdcall SPObjUpdate(struct SSPObjUpdateInfo const &ui, unsigned int iClientID)
 {
-	//save the x,y,z in this update
-	Vector shippyPos;
-	shippyPos = ui.vPos;
-	
 	if (mapRegisteredRacers[iClientID].bWaiting)//we're in a waiting state before start of race
 	{
-		Vector diff;
-		diff.x = shippyPos.x - mapRegisteredRaceTracks[mapRegisteredRacers[iClientID].iTrackId].vStartPos.x;//target pos
-		diff.y = shippyPos.y - mapRegisteredRaceTracks[mapRegisteredRacers[iClientID].iTrackId].vStartPos.y;//start position of track that user is registerd for
-		diff.z = shippyPos.z - mapRegisteredRaceTracks[mapRegisteredRacers[iClientID].iTrackId].vStartPos.z;
-		float d = pow(pow(diff.x, 2.0f) + pow(diff.y, 2.0f) + pow(diff.z, 2.0f), 0.5f);//calulate 3d distance
+		float d = HkDistance3D(ui.vPos, mapRegisteredRaceTracks[mapRegisteredRacers[iClientID].iTrackId].vStartPos);
 		//check if the player has started moving - before beginning race
 		if (d < buffer)
 		{
@@ -304,11 +296,7 @@ void __stdcall SPObjUpdate(struct SSPObjUpdateInfo const &ui, unsigned int iClie
 			return;
 		}
 		//finish race
-		Vector diff;
-		diff.x = shippyPos.x - mapRegisteredRaceTracks[mapRegisteredRacers[iClientID].iTrackId].vFinishPos.x;//target pos
-		diff.y = shippyPos.y - mapRegisteredRaceTracks[mapRegisteredRacers[iClientID].iTrackId].vFinishPos.y;//finish position of track that user is registered for
-		diff.z = shippyPos.z - mapRegisteredRaceTracks[mapRegisteredRacers[iClientID].iTrackId].vFinishPos.z;
-		float d = pow(pow(diff.x,2.0f)+ pow(diff.y, 2.0f)+ pow(diff.z, 2.0f),0.5f);//calculate 3d distance
+		float d = HkDistance3D(ui.vPos, mapRegisteredRaceTracks[mapRegisteredRacers[iClientID].iTrackId].vFinishPos);
 		//is the user in the finish buffer zone?
 		if (d < buffer)
 		{
